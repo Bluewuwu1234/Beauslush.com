@@ -1,0 +1,204 @@
+@page
+@model SandCubesModel
+@{
+    ViewData["Title"] = "SandCubes";
+}
+
+<div class="sandbox-page">
+    <section class="panel sandbox-palette">
+        <div class="panel-header">
+            <h2>SandCubes</h2>
+            <p class="text-muted">Choose an element and place it on the grid.</p>
+        </div>
+
+        <div class="palette-controls">
+            <div class="palette" id="palette">
+                <button type="button" class="palette-item active" data-element="sand">Sand</button>
+                <button type="button" class="palette-item" data-element="water">Water</button>
+                <button type="button" class="palette-item" data-element="wet-sand">Wet sand</button>
+            </div>
+            <button type="button" class="hero-button reset-button" id="resetGrid">Reset grid</button>
+        </div>
+    </section>
+
+    <section class="panel sandbox-grid-panel">
+        <div class="panel-header">
+            <h2>Sandbox Grid</h2>
+            <p class="text-muted">Click a cell to place the selected element; water and sand collisions create wet sand.</p>
+        </div>
+
+        <div class="sandbox-grid" id="sandboxGrid"></div>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        const paletteButtons = document.querySelectorAll('#palette .palette-item');
+        const grid = document.getElementById('sandboxGrid');
+        const resetGrid = document.getElementById('resetGrid');
+        const rows = 24;
+        const cols = 24;
+        let selectedElement = 'sand';
+        let isPlacing = false;
+        const gridState = Array.from({ length: rows }, () => Array(cols).fill('empty'));
+        const placementLocks = Array.from({ length: rows }, () => Array(cols).fill(false));
+        const tickDelay = 60; // ms between physics updates
+        let lastTick = 0;
+
+        function setCellState(row, col, type, byUser = false) {
+            gridState[row][col] = type;
+            const cell = grid.children[row * cols + col];
+            cell.className = 'sandbox-cell';
+            if (type === 'sand') cell.classList.add('sand-cell');
+            if (type === 'water') cell.classList.add('water-cell');
+            if (type === 'wet-sand') cell.classList.add('wet-sand-cell');
+            if (byUser) placementLocks[row][col] = true;
+        }
+
+        function placeElement(row, col) {
+            if (row < 0 || col < 0 || row >= rows || col >= cols) return;
+            setCellState(row, col, selectedElement, true);
+        }
+
+        function createCell(row, col) {
+            const cell = document.createElement('button');
+            cell.type = 'button';
+            cell.className = 'sandbox-cell';
+            cell.dataset.row = row;
+            cell.dataset.col = col;
+            return cell;
+        }
+
+        function buildGrid() {
+            grid.innerHTML = '';
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    grid.appendChild(createCell(r, c));
+                    setCellState(r, c, 'empty');
+                    placementLocks[r][c] = false;
+                }
+            }
+        }
+
+        function getCellFromEvent(event) {
+            const cell = event.target.closest('.sandbox-cell');
+            if (!cell || !grid.contains(cell)) return null;
+            return cell;
+        }
+
+        grid.addEventListener('pointerdown', event => {
+            const cell = getCellFromEvent(event);
+            if (!cell) return;
+            event.preventDefault();
+            isPlacing = true;
+            const row = Number(cell.dataset.row);
+            const col = Number(cell.dataset.col);
+            placeElement(row, col);
+            try { cell.setPointerCapture(event.pointerId); } catch (e) {}
+        });
+
+        grid.addEventListener('pointermove', event => {
+            if (!isPlacing) return;
+            const cell = getCellFromEvent(event);
+            if (!cell) return;
+            const row = Number(cell.dataset.row);
+            const col = Number(cell.dataset.col);
+            placeElement(row, col);
+        });
+
+        grid.addEventListener('pointerup', event => {
+            const cell = getCellFromEvent(event);
+            if (cell) {
+                try { cell.releasePointerCapture(event.pointerId); } catch (e) {}
+            }
+            isPlacing = false;
+        });
+
+        grid.addEventListener('pointerleave', () => { isPlacing = false; });
+        document.addEventListener('pointerup', () => { isPlacing = false; });
+
+        function simulateStep(now) {
+            if (!now) now = performance.now();
+            if (now - lastTick < tickDelay) { requestAnimationFrame(simulateStep); return; }
+            lastTick = now;
+
+            const next = gridState.map(row => row.slice());
+
+            // process sand first (falls straight down)
+            for (let r = rows - 1; r >= 0; r--) {
+                for (let c = 0; c < cols; c++) {
+                    if (placementLocks[r][c]) continue; // recently placed, skip this tick
+                    const type = gridState[r][c];
+                    if (type === 'sand') {
+                        if (r + 1 < rows && gridState[r + 1][c] === 'empty') {
+                            next[r + 1][c] = 'sand';
+                            next[r][c] = 'empty';
+                        } else if (r + 1 < rows && gridState[r + 1][c] === 'water') {
+                            next[r + 1][c] = 'wet-sand';
+                            next[r][c] = 'empty';
+                        }
+                    }
+                }
+            }
+
+            // then process water (falls straight down, no sideways flow)
+            for (let r = rows - 1; r >= 0; r--) {
+                for (let c = 0; c < cols; c++) {
+                    if (placementLocks[r][c]) continue; // skip newly placed
+                    const type = gridState[r][c];
+                    if (type === 'water') {
+                        if (r + 1 < rows && gridState[r + 1][c] === 'empty') {
+                            next[r + 1][c] = 'water';
+                            next[r][c] = 'empty';
+                        } else if (r + 1 < rows && gridState[r + 1][c] === 'sand') {
+                            next[r + 1][c] = 'wet-sand';
+                            next[r][c] = 'empty';
+                        }
+                    }
+                }
+            }
+
+            let changed = false;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (next[r][c] !== gridState[r][c]) { changed = true; }
+                }
+            }
+
+            if (changed) {
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        if (next[r][c] !== gridState[r][c]) {
+                            setCellState(r, c, next[r][c], false);
+                        }
+                    }
+                }
+                // clear placement locks after one tick
+                for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) placementLocks[r][c] = false;
+                requestAnimationFrame(simulateStep);
+            } else {
+                setTimeout(() => requestAnimationFrame(simulateStep), tickDelay);
+            }
+        }
+
+        paletteButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                paletteButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                selectedElement = button.dataset.element;
+            });
+        });
+
+        resetGrid.addEventListener('click', () => {
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    setCellState(r, c, 'empty');
+                    placementLocks[r][c] = false;
+                }
+            }
+        });
+
+        buildGrid();
+        requestAnimationFrame(simulateStep);
+    </script>
+}
