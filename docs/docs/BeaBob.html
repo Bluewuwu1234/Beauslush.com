@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BeauSlush</title>
+    <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+<div class="beabob-page">
+    <section class="panel beabob-panel">
+        <div class="panel-header">
+            <h2>BeaBob</h2>
+            <p class="text-muted">The best ai ever( said nobody ).</p>
+        </div>
+
+        <div class="chat-area">
+            <div id="chatLog" class="chat-log"></div>
+            <div class="chat-controls">
+                <input id="userInput" type="text" placeholder="Ask something..." />
+                <button id="sendBtn" class="hero-button">Send</button>
+            </div>
+        </div>
+    </section>
+</div>
+
+    <script>
+        const chatLog = document.getElementById('chatLog');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        function appendMessage(who, text) {
+            const el = document.createElement('div');
+            el.className = 'chat-message ' + who;
+            el.textContent = (who === 'user' ? 'You: ' : 'BeaBob: ') + text;
+            chatLog.appendChild(el);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        async function send() {
+            const text = userInput.value.trim();
+            if (!text) return;
+            appendMessage('user', text);
+            userInput.value = '';
+
+            // call backend endpoint
+            try {
+                const res = await fetch('/BeaBob?handler=Ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ input: text })
+                });
+                if (!res.ok) {
+                    const txt = await res.text();
+                    appendMessage('ai', `Error ${res.status}: ${txt}`);
+                } else {
+                    const data = await res.json();
+                    appendMessage('ai', data.answer || 'No response.');
+                }
+            } catch (e) {
+                appendMessage('ai', 'Network error: ' + e.message);
+            }
+        }
+
+        sendBtn.addEventListener('click', send);
+        userInput.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+
+        
+    </script>
+
+</body>
+</html>
