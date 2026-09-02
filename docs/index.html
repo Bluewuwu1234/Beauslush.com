@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Welcome to Beauslush, home of Teddy and friends.">
+  <title>Beauslush</title>
+  <link rel="icon" href="wwwroot/favicon.ico">
+  <link rel="stylesheet" href="wwwroot/css/site.css">
+  <style>
+    .landing-page {
+      align-items: start;
+    }
+
+    .landing-content {
+      width: min(100%, 960px);
+      margin: 0 auto;
+    }
+
+    .hero {
+      text-align: center;
+    }
+
+    .hero h1 {
+      margin: 0;
+      color: #102653;
+    }
+
+    .hero .logo {
+      display: block;
+      width: min(100%, 420px);
+      max-width: 100%;
+      margin: 0 auto 1rem;
+    }
+
+    .content-section {
+      margin-top: 2.5rem;
+    }
+
+    .content-section h2 {
+      margin-bottom: 1rem;
+      color: #102653;
+    }
+
+    .teddy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+    }
+
+    .teddy-card {
+      overflow: hidden;
+      border: 1px solid #dfe8ff;
+      border-radius: 18px;
+      background: #f7faff;
+      text-align: center;
+    }
+
+    .teddy-card img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      padding: 0.75rem;
+    }
+
+    .teddy-card strong {
+      display: block;
+      padding: 0.65rem;
+      color: #304160;
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      color: #5d7192;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="landing-page">
+    <div class="landing-content">
+      <section class="hero" aria-labelledby="page-title">
+        <img class="logo" src="wwwroot/images/Beauslush-logo.png" alt="Beauslush logo">
+        <h1 id="page-title">Welcome to Beauslush</h1>
+        <p class="slogan">A cozy corner for Teddy and friends.</p>
+      </section>
+
+      <section class="panel content-section" aria-labelledby="friends-title">
+        <h2 id="friends-title">Meet the crew</h2>
+        <div class="teddy-grid">
+          <article class="teddy-card"><img src="wwwroot/images/TeddysStuff/BigBoy.png" alt="Big Boy"><strong>Big Boy</strong></article>
+          <article class="teddy-card"><img src="wwwroot/images/TeddysStuff/Bluewuwu.png" alt="Bluewuwu"><strong>Bluewuwu</strong></article>
+          <article class="teddy-card"><img src="wwwroot/images/TeddysStuff/Bob.png" alt="Bob"><strong>Bob</strong></article>
+          <article class="teddy-card"><img src="wwwroot/images/TeddysStuff/DoggyWoofWoof.png" alt="Doggy Woof Woof"><strong>Doggy Woof Woof</strong></article>
+          <article class="teddy-card"><img src="wwwroot/images/TeddysStuff/FreddyFazbear.png" alt="Freddy Fazbear"><strong>Freddy Fazbear</strong></article>
+          <article class="teddy-card"><img src="wwwroot/images/TeddysStuff/SillySlush.png" alt="Silly Slush"><strong>Silly Slush</strong></article>
+          <article class="teddy-card"><img src="wwwroot/images/TeddysStuff/Stripey.png" alt="Stripey"><strong>Stripey</strong></article>
+          <article class="teddy-card"><img src="wwwroot/images/TeddysStuff/WooWoo.png" alt="Woo Woo"><strong>Woo Woo</strong></article>
+        </div>
+      </section>
+
+      <footer>Made with care by Beauslush.</footer>
+    </div>
+  </main>
+</body>
+</html>
