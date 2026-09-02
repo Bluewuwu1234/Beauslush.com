@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BeauSlush</title>
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+<div class="rng-page">
+    <section class="panel rng-panel">
+        <div class="panel-header">
+            <h2>RNG RNG</h2>
+            <p class="text-muted">Gambling, but better.</p>
+        </div>
+
+        <div class="stat-row">
+            <div class="stat-card">
+                <span class="stat-label">Slushles</span>
+                <strong id="slushles">0</strong>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Rolls left</span>
+                <strong id="rollsLeft">1</strong>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Current RNG</span>
+                <strong id="currentRng">None</strong>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Roller roll price</span>
+                <strong id="rollerRollPrice">10</strong>
+            </div>
+        </div>
+
+        <div class="action-row">
+            <button type="button" id="rollRngBtn" class="hero-button">Roll the roller roller</button>
+            <button type="button" id="buyRollerRollBtn" class="hero-button secondary">Buy another roller roll</button>
+            <button type="button" id="rollInsideBtn" class="hero-button secondary">Roll inside current RNG</button>
+        </div>
+
+        <div id="lastRoll" class="last-roll">No roll yet.</div>
+
+        <div class="rng-grid">
+            <div class="panel">
+                <h3>Current RNG</h3>
+                <div id="rngInfo" class="list"></div>
+            </div>
+            <div class="panel">
+                <h3>Unlocked RNGs</h3>
+                <div id="rngInventoryList" class="list compact-list"></div>
+                <h3>Inventory</h3>
+                <div id="inventoryList" class="list compact-list"></div>
+            </div>
+        </div>
+    </section>
+</div>
+
+    <script>
+        const rngs = [
+            { name: 'Aura RNG', weight: 60, options: [
+                { name: 'Fire', weight: 40 },
+                { name: 'Earth', weight: 25 },
+                { name: 'Wind', weight: 15 },
+                { name: 'Power', weight: 10 },
+                { name: 'Cheese', weight: 5 },
+                { name: 'Reality', weight: 4 },
+                { name: 'Time', weight: 1 }
+            ] },
+            { name: 'Food RNG', weight: 25, options: [
+                { name: 'Rice', weight: 40 },
+                { name: 'Pizza', weight: 25 },
+                { name: 'Burger', weight: 15 },
+                { name: 'Sushi', weight: 10 },
+                { name: 'Chocolate', weight: 5 },
+                { name: 'Steak', weight: 4 },
+                { name: 'Playdough', weight: 1 }
+            ] },
+            { name: 'FNaF RNG', weight: 10, options: [
+                { name: 'Freddy', weight: 40 },
+                { name: 'Chica', weight: 25 },
+                { name: 'Bonnie', weight: 15 },
+                { name: 'Springtrap', weight: 10 },
+                { name: 'Foxy', weight: 4 },
+                { name: 'Golden Freddy', weight: 0.9 },
+                { name: 'Mr hippo', weight: 0.1 }
+            ] },
+            { name: 'Game RNG', weight: 4, options: [
+                { name: 'Fortnite', weight: 40 },
+                { name: 'Minecraft', weight: 30 },
+                { name: 'Roblox', weight: 20 },
+                { name: 'Geometry Dash', weight: 5 },
+                { name: 'Hearts of Iron VI', weight: 4 },
+                { name: 'Mario', weight: 1 },
+                { name: 'BeauSlush.com', weight: 0.1 }
+            ] },
+            { name: 'Planet RNG', weight: 0.9, options: [
+                { name: 'Earth', weight: 50 },
+                { name: 'Mars', weight: 35 },
+                { name: 'Uranus', weight: 10 },
+                { name: 'Pluto', weight: 4 },
+                { name: 'ROX 42Bb', weight: 0.9 },
+                { name: '???', weight: 0.1 }
+            ] },
+            { name: 'BeauSlush.com RNG', weight: 0.1, options: [
+                { name: 'RNG RNG', weight: 30 },
+                { name: 'Teddys', weight: 25 },
+                { name: 'Slush Slam', weight: 25 },
+                { name: 'BeaBob', weight: 15 },
+                { name: 'BeauSlush.com', weight: 5 }
+            ] }
+        ];
+
+        let slushles = 0;
+        let rollsLeft = 1;
+        let currentRng = null;
+        let currentItem = null;
+        let inventory = {};
+        let unlockedRngs = {};
+        let rollerRollPrice = 10;
+        let duplicateDiscountActive = false;
+
+        function pickWeighted(options) {
+            const total = options.reduce((sum, item) => sum + item.weight, 0);
+            let roll = Math.random() * total;
+            for (const item of options) {
+                roll -= item.weight;
+                if (roll <= 0) return item;
+            }
+            return options[options.length - 1];
+        }
+
+        function getRngReward(rngWeight) {
+            return Math.max(2, Math.round(3 + 20 / rngWeight));
+        }
+
+        function getOptionReward(optionWeight) {
+            return Math.max(2, Math.round(3 + 20 / optionWeight));
+        }
+
+        function renderCurrentRng() {
+            const panel = document.getElementById('rngInfo');
+            if (!currentRng) {
+                panel.innerHTML = '<div class="empty">Roll the roller roller to get an RNG.</div>';
+                return;
+            }
+
+            panel.innerHTML = `
+                <div class="inventory-item"><strong>${currentRng.name}</strong></div>
+                <div class="inventory-item">Rarity: ${currentRng.weight}%</div>
+                <div class="inventory-item">Equipped: ${currentItem ? currentItem.name : 'None'}</div>
+                ${currentItem ? `<div class="inventory-item">Reward: ${currentItem.reward} slushles</div>` : ''}
+            `;
+        }
+
+        function renderRngInventory() {
+            const list = document.getElementById('rngInventoryList');
+            list.innerHTML = '';
+            const entries = Object.entries(unlockedRngs);
+            if (entries.length === 0) {
+                list.innerHTML = '<div class="empty">No RNGs unlocked yet.</div>';
+                return;
+            }
+            entries.forEach(([name]) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'inventory-item' + (currentRng && currentRng.name === name ? ' active' : '');
+                button.textContent = name;
+                button.addEventListener('click', () => {
+                    currentRng = rngs.find(rng => rng.name === name) || null;
+                    currentItem = null;
+                    renderCurrentRng();
+                    renderInventory();
+                    renderRngInventory();
+                });
+                list.appendChild(button);
+            });
+        }
+
+        function renderInventory() {
+            const list = document.getElementById('inventoryList');
+            list.innerHTML = '';
+            if (!currentRng) {
+                list.innerHTML = '<div class="empty">No RNG selected yet.</div>';
+                return;
+            }
+            const entries = Object.entries(inventory[currentRng.name] || {});
+            if (entries.length === 0) {
+                list.innerHTML = '<div class="empty">No rolls yet in this RNG.</div>';
+                return;
+            }
+            entries.forEach(([name, entry]) => {
+                const option = currentRng.options.find(item => item.name === name);
+                const rarity = option ? option.weight : 0;
+                const count = entry && typeof entry === 'object' ? entry.count : entry;
+                const reward = entry && typeof entry === 'object' ? entry.reward : getOptionReward(rarity);
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'inventory-item' + (currentItem && currentItem.name === name ? ' active' : '');
+                button.innerHTML = `<strong>${name}</strong><br />Owned: ${count}<br />Rarity: ${rarity}%<br />Reward: ${reward} slushles`;
+                button.addEventListener('click', () => {
+                    currentItem = { name, rarity, reward };
+                    renderCurrentRng();
+                    renderInventory();
+                });
+                list.appendChild(button);
+            });
+        }
+
+        function updateStats() {
+            document.getElementById('slushles').textContent = slushles;
+            document.getElementById('rollsLeft').textContent = rollsLeft;
+            document.getElementById('currentRng').textContent = currentRng ? currentRng.name : 'None';
+            document.getElementById('rollerRollPrice').textContent = rollerRollPrice;
+        }
+
+        function buyRollerRoll() {
+            if (slushles < rollerRollPrice) {
+                document.getElementById('lastRoll').textContent = `Need ${rollerRollPrice} slushles to buy another roller roll.`;
+                return;
+            }
+
+            slushles -= rollerRollPrice;
+            rollsLeft += 1;
+            if (!duplicateDiscountActive) {
+                rollerRollPrice += 10;
+            }
+            duplicateDiscountActive = false;
+            document.getElementById('lastRoll').textContent = `Bought a roller roll. Rolls left: ${rollsLeft}.`;
+            updateStats();
+        }
+
+        function rollRng() {
+            if (rollsLeft <= 0) {
+                document.getElementById('lastRoll').textContent = 'No roller rolls left.';
+                return;
+            }
+
+            rollsLeft -= 1;
+            const rng = pickWeighted(rngs);
+            currentRng = rng;
+            currentItem = null;
+            unlockedRngs[rng.name] = true;
+            document.getElementById('lastRoll').textContent = `You rolled ${rng.name}.`;
+            updateStats();
+            renderCurrentRng();
+            renderRngInventory();
+            renderInventory();
+        }
+
+        function rollInsideCurrentRng() {
+            if (!currentRng) {
+                document.getElementById('lastRoll').textContent = 'Roll the roller roller first.';
+                return;
+            }
+            const result = pickWeighted(currentRng.options);
+            const alreadyHave = (inventory[currentRng.name] && inventory[currentRng.name][result.name]) || 0;
+            const baseReward = getRngReward(currentRng.weight) + getOptionReward(result.weight);
+            const reward = alreadyHave > 0 ? Math.max(1, Math.round(baseReward / 2)) : baseReward;
+            inventory[currentRng.name] = inventory[currentRng.name] || {};
+            const currentEntry = inventory[currentRng.name][result.name];
+            inventory[currentRng.name][result.name] = {
+                count: (currentEntry && typeof currentEntry === 'object' ? currentEntry.count : currentEntry || 0) + 1,
+                reward
+            };
+            slushles += reward;
+            currentItem = { name: result.name, rarity: result.weight, reward };
+            duplicateDiscountActive = alreadyHave > 0;
+            document.getElementById('lastRoll').textContent = `Rolled ${result.name} inside ${currentRng.name}. You earned ${reward} slushles and it has ${result.weight}% rarity.`;
+            updateStats();
+            renderCurrentRng();
+            renderInventory();
+        }
+
+        const buyRollerRollBtn = document.getElementById('buyRollerRollBtn');
+        const rollRngBtn = document.getElementById('rollRngBtn');
+        const rollInsideBtn = document.getElementById('rollInsideBtn');
+        if (buyRollerRollBtn) {
+            buyRollerRollBtn.addEventListener('click', buyRollerRoll);
+        }
+        if (rollRngBtn) {
+            rollRngBtn.addEventListener('click', rollRng);
+        }
+        if (rollInsideBtn) {
+            rollInsideBtn.addEventListener('click', rollInsideCurrentRng);
+        }
+
+        updateStats();
+        renderCurrentRng();
+        renderRngInventory();
+        renderInventory();
+    </script>
+
+    <script src="lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/layout.js"></script>
+</body>
+</html>
